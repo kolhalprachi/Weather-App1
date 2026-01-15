@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Weather App with City Carousel</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+  }
+
+  /* SEARCH BAR OUTSIDE */
+  .search {
+    display: flex;
+    gap: 8px;
+    margin: 40px 0 20px 0;
+    width: 350px;
+  }
+
+  .search input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+  }
+
+  .search button {
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: none;
+    background: #4a69bd;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .app {
+    width: 350px;
+    padding: 20px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Top */
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .city {
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .temp {
+    font-size: 40px;
+  }
+
+  .main {
+    text-align: center;
+    margin: 20px 0;
+    animation: fadeIn 0.8s ease forwards;
+  }
+
+  .main img {
+    width: 120px;
+  }
+
+  /* OUTSIDE CAROUSEL */
+  .city-carousel {
+    width: 100%;
+    margin-top: 30px;
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+  }
+
+  .city-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .city-card {
+    min-width: 140px;
+    padding: 15px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.2);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .city-card:hover {
+    transform: scale(1.08);
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 0 15px 4px rgba(74,105,189,0.7);
+  }
+
+  .city-card img {
+    width: 50px;
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- SEARCH BAR OUTSIDE APP -->
+<div class="search">
+  <input id="cityInput" type="text" placeholder="Enter city name" />
+  <button onclick="searchCity()">Search</button>
+</div>
+
+<!-- MAIN APP -->
+<div class="app">
+  <div class="top">
+    <div class="city" id="city">--</div>
+    <div class="temp" id="temp">--°C</div>
+  </div>
+
+  <div class="main" id="mainWeather">
+    <img id="mainIcon" alt="weather icon" />
+    <h3 id="condition">---</h3>
+  </div>
+</div>
+
+<!-- OUTSIDE CAROUSEL -->
+<div class="city-carousel" id="cityCarousel"></div>
+
+<script>
+  const apiKey = "YOUR_API_KEY";  // Replace with your OpenWeather API key
+
+  const cities = [
+    "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai",
+    "Kolkata", "Pune", "Ahmedabad", "Surat", "Jaipur",
+    "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane"
+  ];
+
+  const cityEl = document.getElementById("city");
+  const tempEl = document.getElementById("temp");
+  const conditionEl = document.getElementById("condition");
+  const mainIcon = document.getElementById("mainIcon");
+  const mainWeather = document.getElementById("mainWeather");
+  const cityInput = document.getElementById("cityInput");
+
+  // Initial load with Pune
+  fetchWeather("Pune");
+  loadCarousel();
+
+  async function fetchWeather(city) {
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=06a34d287c1333589089519c4ff35e3e`
+      );
+      if (!res.ok) throw new Error("City not found");
+
+      const data = await res.json();
+
+      cityEl.textContent = data.name;
+      tempEl.textContent = Math.round(data.main.temp) + "°C";
+      conditionEl.textContent = data.weather[0].description;
+      mainIcon.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`;
+      mainIcon.alt = data.weather[0].description;
+
+      // Restart animation by removing & re-adding class
+      mainWeather.style.animation = "none";
+      mainWeather.offsetHeight; // trigger reflow
+      mainWeather.style.animation = null;
+
+    } catch (error) {
+      cityEl.textContent = "Not Found";
+      tempEl.textContent = "--°C";
+      conditionEl.textContent = "";
+      mainIcon.src = "";
+      mainIcon.alt = "";
+      alert(error.message);
+    }
+  }
+
+  async function loadCarousel() {
+    const carousel = document.getElementById("cityCarousel");
+    carousel.innerHTML = "";
+
+    for (const city of cities) {
+      try {
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=06a34d287c1333589089519c4ff35e3e`
+        );
+        if (!res.ok) throw new Error("City not found");
+
+        const data = await res.json();
+
+        const card = document.createElement("div");
+        card.className = "city-card";
+        card.innerHTML = `
+          <h4>${data.name}</h4>
+          <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="${data.weather[0].description}">
+          <p>${Math.round(data.main.temp)}°C</p>
+        `;
+
+        card.onclick = () => fetchWeather(city);
+        carousel.appendChild(card);
+      } catch {
+        // silently ignore errors
+      }
+    }
+  }
+
+  function searchCity() {
+    const input = cityInput.value.trim();
+    if (input) fetchWeather(input);
+    cityInput.value = "";
+  }
+
+  cityInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") searchCity();
+  });
+</script>
+
+</body>
+</html>
